@@ -1,0 +1,11 @@
+--2024-06-25 18:42:47--  https://raw.githubusercontent.com/cppforlife/zookeeper-release/master/manifests/zookeeper.yml
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 185.199.110.133, 185.199.109.133, 185.199.108.133, ...
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|185.199.110.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 843 [text/plain]
+Saving to: ‘STDOUT’
+
+-                                              0%[                                                                                              ]       0  --.-KB/s               -                                            100%[=============================================================================================>]     843  --.-KB/s    in 0s      
+
+2024-06-25 18:42:47 (35.9 MB/s) - written to stdout [843/843]
+

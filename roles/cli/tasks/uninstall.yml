@@ -1,0 +1,13 @@
+- name: Delete CF and Bosh CLI Binary
+  file:
+    path: "{{ item }}"
+    state: absent
+  register: delete_cf_cli
+  delegate_to: localhost
+  with_items:
+    - "/usr/local/bin/bosh"
+    - "/usr/local/bin/cf"
+    - "/usr/local/bin/cf8"
+    - "/usr/local/bin/LICENSE"
+    - "/usr/local/bin/NOTICE"
+- debug: msg={{ delete_cf_cli }}

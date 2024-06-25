@@ -1,0 +1,230 @@
+[ Config PATH for VBoxManage ]
+- https://www.youtube.com/watch?v=miC9HtiMxuM
+
+
+[ Download Bosh CLI ]
+- https://github.com/cloudfoundry/bosh-cli/releases
+$ sudo mv /usr/local/bin/bosh-cli-7.6.1-linux-amd64 /usr/local/bin/bosh
+$ sudo chmod 755 /usr/local/bin/bosh
+
+
+[ Download Stemcell ]
+- https://bosh.io/stemcells/bosh-vsphere-esxi-ubuntu-jammy-go_agent
+
+
+[ VMware vSphere ]
+- https://bosh.io/docs/init-vsphere/
+
+* Create directory to keep state
+mkdir bosh-1 && cd bosh-1
+
+* Clone Director templates
+git clone https://github.com/cloudfoundry/bosh-deployment
+
+
+# Fill below variables (replace example values) and deploy the Director
+$ vi create-bosh-director.sh
+bosh create-env bosh-deployment/bosh.yml \
+    --state=state.json \
+    --vars-store=creds.yml \
+    -o bosh-deployment/vsphere/cpi.yml \
+    -v director_name=bosh-1 \
+    -v internal_cidr=192.168.0.0/24 \
+    -v internal_gw=192.168.0.1 \
+    -v internal_ip=192.168.0.181 \
+    -v network_name="VM Network" \
+    -v vcenter_dc=wDC01 \
+    -v vcenter_ds=datastore3 \
+    -v vcenter_ip=192.168.0.202 \
+    -v vcenter_user=Administrator@vsphere.local \
+    -v vcenter_password="Changeme34#$" \
+    -v vcenter_templates=bosh-1-templates \
+    -v vcenter_vms=bosh-1-vms \
+    -v vcenter_disks=bosh-1-disks \
+    -v vcenter_cluster=wClu01
+
+
+$ sh create-bosh-director.sh
+
+$ bosh alias-env bosh-1 -e 192.168.0.181 --ca-cert <(bosh int ./creds.yml --path /director_ssl/ca)
+~~~
+Using environment '192.168.0.181' as anonymous user
+
+Name               bosh-1
+UUID               272ef995-2b88-4aeb-9627-e16db565cfc2
+Version            280.1.0 (00000000)
+Director Stemcell  -/1.465
+CPI                vsphere_cpi
+Features           config_server: disabled
+                   local_dns: enabled
+                   snapshots: disabled
+User               (not logged in)
+
+Succeeded
+~~~
+
+$ export BOSH_CLIENT=admin
+
+$ export BOSH_CLIENT_SECRET=`bosh int ./creds.yml --path /admin_password`
+
+$ bosh -e bosh-1 env
+~~~
+Using environment '192.168.0.181' as client 'admin'
+
+Name               bosh-1
+UUID               272ef995-2b88-4aeb-9627-e16db565cfc2
+Version            280.1.0 (00000000)
+Director Stemcell  -/1.465
+CPI                vsphere_cpi
+Features           config_server: disabled
+                   local_dns: enabled
+                   snapshots: disabled
+User               admin
+
+Succeeded
+~~~
+
+
+$ bosh target 192.168.0.181
+~~~
+Unknown command `target'. Please specify one command of: add-blob, alias-env, attach-disk, blobs, cancel-task, cancel-tasks, clean-up, cloud-check, cloud-config,
+completion, config, configs, cpi-config, create-env, create-recovery-plan, create-release, curl, delete-config, delete-deployment, delete-disk, delete-env, 
+delete-network, delete-release, delete-snapshot, delete-snapshots, delete-stemcell, delete-vm, deploy, deployment, deployments, diff-config, disks, environment,
+environments, errands, event, events, export-release, finalize-release, generate-job, generate-package, help, ignore, init-release, inspect-local-release,
+inspect-local-stemcell, inspect-release, instances, interpolate, locks, log-in, log-out, logs, manifest, networks, orphan-disk, orphaned-vms, pcap, recover, 
+recreate, releases, remove-blob, repack-stemcell, reset-release, restart, run-errand, runtime-config, scp, sha1ify-release, sha2ify-release, snapshots, ssh, start,
+start-env, stemcells, stop, stop-env, sync-blobs, take-snapshot, task, tasks, unalias-env, unignore, update-cloud-config, update-config, update-cpi-config,
+update-resurrection, update-runtime-config, upload-blobs, upload-release, upload-stemcell, variables, vendor-package or vms
+Exit code 1
+~~~
+
+# Get the source
+$ git clone https://github.com/cloudfoundry/cf-release.git
+
+# Get all submodules
+$ cd cf-release
+./scripts/update
+
+
+
+
+
+
+#???
+# Create and Upload Relase
+$ bosh create release
+$ bosh create release
+
+
+# Login into Bosh Director
+$ export BOSH_CLIENT=admin
+$ export BOSH_CLIENT_SECRET=`bosh int ./creds.yml --path /admin_password`
+
+~~~
+$ bosh -e bosh-1 login
+Using environment '192.168.0.181'
+
+Using environment '192.168.0.181' as client 'admin'
+
+Logged in to '192.168.0.181'
+
+Succeeded
+
+$ bosh -e bosh-1 logout
+Logged out from '192.168.0.181'
+
+Succeeded
+~~~
+
+
+$ bosh -e bosh-1 upload-stemcell bosh-stemcell-1.465-vsphere-esxi-ubuntu-jammy-go_agent.tgz
+~~~
+Using environment '192.168.0.181' as client 'admin'
+
+[-----------------------------------------------------] 100.00% 6.04 MiB/s 3m26s
+Task 1
+
+Task 1 | 09:29:32 | Update stemcell: Extracting stemcell archive (00:00:13)
+Task 1 | 09:29:45 | Update stemcell: Verifying stemcell manifest (00:00:00)
+Task 1 | 09:29:46 | Update stemcell: Checking if this stemcell already exists (00:00:00)
+Task 1 | 09:29:46 | Update stemcell: Uploading stemcell bosh-vsphere-esxi-ubuntu-jammy-go_agent/1.465 to the cloud (00:00:53)
+Task 1 | 09:30:39 | Update stemcell: Save stemcell bosh-vsphere-esxi-ubuntu-jammy-go_agent/1.465 (sc-e2e0560d-569a-4b35-b03e-c6518c816fb3) (00:00:00)
+
+Task 1 Started  Tue Jun 25 09:29:32 UTC 2024
+Task 1 Finished Tue Jun 25 09:30:39 UTC 2024
+Task 1 Duration 00:01:07
+Task 1 done
+
+Succeeded
+~~~
+
+
+$ cd bosh-1
+$ bosh -e bosh-1 update-cloud-config bosh-deployment/warden/cloud-config.yml
+Using environment '192.168.0.181' as client 'admin'
+
++ azs:
++ - name: z1
++ - name: z2
++ - name: z3
+
++ vm_types:
++ - name: default
+
++ compilation:
++   az: z1
++   network: default
++   reuse_compilation_vms: true
++   vm_type: default
++   workers: 5
+
++ networks:
++ - name: default
++   subnets:
++   - azs:
++     - z1
++     - z2
++     - z3
++     dns:
++     - 8.8.8.8
++     gateway: 10.244.0.1
++     range: 10.244.0.0/24
++     reserved: []
++     static:
++     - 10.244.0.34
++   type: manual
+
++ disk_types:
++ - disk_size: 1024
++   name: default
+
+Continue? [yN]: y
+
+Succeeded
+
+
+[ Deploy CF ]
+- https://docs.cloudfoundry.org/deploying/cf-deployment/deploy-cf.html
+
+
+
+$ bosh -e bosh-1 stemcells
+~~~
+Using environment '192.168.0.181' as client 'admin'
+
+Name                                     Version  OS            CPI  CID
+bosh-vsphere-esxi-ubuntu-jammy-go_agent  1.465    ubuntu-jammy  -    sc-e2e0560d-569a-4b35-b03e-c6518c816fb3
+
+(*) Currently deployed
+
+1 stemcells
+
+Succeeded
+~~~
+
+
+
+[ References ]
+- https://ansible-altostratus.readthedocs.io/en/latest/cloudfoundry.html
+- https://github.com/alibaba-archive/ansible-role-cloudfoundry
+

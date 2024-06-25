@@ -1,0 +1,12 @@
+---
+- hosts: localhost
+  become: true
+  vars:
+    print_debug: true
+  roles:
+    - bosh
+
+#    - cli
+#    - cf
+#    - app
+

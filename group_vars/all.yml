@@ -1,0 +1,89 @@
+ansible_become_pass: "changeme"
+ansible_become_pass: "changeme"
+# cf_release_version: 279
+# bosh_deploy_dir: /home/jomoon/bosh-deploy
+# cf_deploy_dir: /home/jomoon/cf-release-{{ cf_release_version }}
+# dns_recursor_ip: 8.8.8.8
+# stemcell_version: 1017
+
+download_dir: /home/jomoon/downloads
+releases_dir: /home/jomoon/releases
+delete: false
+
+
+base_path: "/home/jomoon/CloudFoundry"
+
+director:
+  name: my-bosh
+
+bosh:
+  director_name: bosh-1
+  deploy_dir: "{{ base_path }}/bosh-deploy"
+  cli:
+    download_url: "https://github.com/cloudfoundry/bosh-cli/releases/download"
+    major_version: 7
+    minor_version: 6
+    patch_version: 1
+  version: ""
+  internal_cidr: "192.168.0.0/24"
+  internal_gw: "192.168.0.1"
+  internal_ip: "192.168.0.181"
+  vm_network: "VM Network"
+
+cf:
+  deploy_dir: "{{ base_path }}/cf-release"
+  dns_recursor_ip: "8.8.8.8"
+  cli:
+    download_url: "https://github.com/cloudfoundry/cli/releases/download"
+    major_version: 8
+    minor_version: 7
+    patch_version: 10
+
+app:
+  version: ""
+
+stemcell:
+  release_version: 1017
+
+
+esxi:
+  hostname: "esxi8.jtest.weka.io"
+  ipaddr: "192.168.0.201"
+  username: "root"
+  password: "Changeme34#$"
+vcenter:
+  hostname: "vcenter8"
+  ip_addr: "192.168.0.202"
+  username: "administrator@vsphere.local"
+  password: "Changeme34#$"
+  vm_user: "root"
+  vm_password: 'Changeme34#$'
+  dns: '192.168.0.90'
+  domain: 'vcenter8.jtest.weka.io'
+  searchpath: 'jtest.weka.io'
+  datacenter: 'wDC01'
+  cluster: 'wClu01'
+  datastore: 'datastore3'
+
+
+#jomoon@LAPTOP-OS28E8H5:~/CloudFoundry/bosh-1$ cat create-bosh-director.sh
+#bosh create-env bosh-deployment/bosh.yml \
+#    --state=state.json \
+#    --vars-store=creds.yml \
+#    -o bosh-deployment/vsphere/cpi.yml \
+#    -v director_name=bosh-1 \
+#    -v internal_cidr=192.168.0.0/24 \
+#    -v internal_gw=192.168.0.1 \
+#    -v internal_ip=192.168.0.181 \
+#    -v network_name="VM Network" \
+#    -v vcenter_dc=wDC01 \
+#    -v vcenter_ds=datastore3 \
+#    -v vcenter_ip=192.168.0.202 \
+#    -v vcenter_user=Administrator@vsphere.local \
+#    -v vcenter_password="Changeme34#$" \
+#    -v vcenter_templates=bosh-1-templates \
+#    -v vcenter_vms=bosh-1-vms \
+#    -v vcenter_disks=bosh-1-disks \
+#    -v vcenter_cluster=wClu01
+
+

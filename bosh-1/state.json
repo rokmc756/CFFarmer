@@ -1,0 +1,47 @@
+{
+    "director_id": "42b40979-6ead-4333-591f-3c15dcbd73de",
+    "installation_id": "768d0b81-f930-49ce-67af-782845ccd424",
+    "current_vm_cid": "vm-12867def-ee55-48c6-ae2a-05d024fcfac3",
+    "current_stemcell_id": "214e737a-699a-4431-59af-431174888234",
+    "current_disk_id": "ea2ccb45-6566-4e1e-4075-99c749d82709",
+    "current_release_ids": [
+        "142299e4-6379-4a7f-6d51-27ea5614bc02",
+        "c2153d37-3d3c-404e-4754-8fe958ff6217",
+        "a3830597-8e0a-4d16-6efe-ac674a6296bb"
+    ],
+    "current_manifest_sha": "0bcb31f03f3127a28de1af0b454644d52247fe45310aff1b86e825464ee4b5e991feb8258253c04868cd5832c3cb607bfb97d8c95a02d7a16f362968ac5dd02c",
+    "disks": [
+        {
+            "id": "ea2ccb45-6566-4e1e-4075-99c749d82709",
+            "cid": "disk-6c4b9519-80cf-44f2-a720-199a453ecd41",
+            "size": 65536,
+            "cloud_properties": {}
+        }
+    ],
+    "stemcells": [
+        {
+            "id": "214e737a-699a-4431-59af-431174888234",
+            "name": "bosh-vsphere-esxi-ubuntu-jammy-go_agent",
+            "version": "1.465",
+            "api_version": 3,
+            "cid": "sc-acf1b92c-e675-4e7c-95a0-3fdb9348efa0"
+        }
+    ],
+    "releases": [
+        {
+            "id": "142299e4-6379-4a7f-6d51-27ea5614bc02",
+            "name": "bosh",
+            "version": "280.1.0"
+        },
+        {
+            "id": "c2153d37-3d3c-404e-4754-8fe958ff6217",
+            "name": "bpm",
+            "version": "1.2.20"
+        },
+        {
+            "id": "a3830597-8e0a-4d16-6efe-ac674a6296bb",
+            "name": "bosh-vsphere-cpi",
+            "version": "97.0.13"
+        }
+    ]
+}

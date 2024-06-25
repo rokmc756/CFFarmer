@@ -1,0 +1,56 @@
+---
+#- name: Register Region
+#  command: echo {{ alicloud_region }}
+#  register: region
+
+
+- name: Download Bosh CLI from GitHub
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  register: download_bosh_cli
+  delegate_to: localhost
+  with_items:
+    - { url: "{{ bosh.cli.download_url }}/v{{ bosh.cli.major_version }}.{{ bosh.cli.minor_version }}.{{ bosh.cli.patch_version }}/bosh-cli-{{ bosh.cli.major_version }}.{{ bosh.cli.minor_version }}.{{ bosh.cli.patch_version }}-linux-amd64", dest: "/usr/local/bin/bosh", mode: "0755" }
+- debug: msg={{ download_bosh_cli }}
+  # when: "'cn-' in region.stdout and 'cn-hongkong' not in region.stdout"
+  # when: "'cn-hongkong' in region.stdout or 'cn-' not in region.stdout"
+  # https://github.com/cloudfoundry/cli/releases
+  # https://github.com/cloudfoundry/bosh-cli/releases
+
+
+- name: Download CF CLI from GitHub
+  unarchive:
+    src: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+    remote_src: yes
+  register: download_cf_cli
+  delegate_to: localhost
+  with_items:
+    - { url: "{{ cf.cli.download_url }}/v{{ cf.cli.major_version }}.{{ cf.cli.minor_version }}.{{ cf.cli.patch_version }}/cf8-cli_{{ cf.cli.major_version }}.{{ cf.cli.minor_version }}.{{ cf.cli.patch_version }}_linux_x86-64.tgz", dest: "/usr/local/bin/", mode: "0755" }
+- debug: msg={{ download_cf_cli }}
+
+
+- name: Execute Bosh and CF CLI
+  shell: "{{ item }}"
+  register: execute_cli
+  with_items:
+    - "bosh -v"
+    - "cf -v"
+  delegate_to: localhost
+- debug: msg={{ execute_cli }}
+
+
+#- name: Upgrade Packages
+#  package: upgrade=dist
+
+
+- name: Install Bosh Depends On
+  package: name={{ item }}
+  register: install_cf_pkgs
+  delegate_to: localhost
+  with_items: "{{ install_pkgs }}"
+- debug: msg={{ install_cf_pkgs }}
+
