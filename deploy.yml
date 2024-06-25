@@ -22,25 +22,26 @@
       when: "'cn-' in region.stdout and 'cn-hongkong' not in region.stdout"
       # https://github.com/cloudfoundry/cf-deployment/tree/main/iaas-support/vsphere
 
-    - name: Dreate directory for cf releases
-      file: path="./roles/cf-deploy/files" state=directory
+    #- name: Dreate directory for cf releases
+    #  file: path="./roles/cf-deploy/files" state=directory
 
-    - name: Create directory for bosh
-      file: path="./roles/bosh-deploy/files" state=directory
+    #- name: Create directory for bosh
+    #  file: path="./roles/bosh-deploy/files" state=directory
 
     - name: Download releases and create new cf-deployment
-      shell: ./download-releases.sh cf-deployment.yml roles/cf-deploy/files/releases
-      when: "'cn-' in region.stdout and 'cn-hongkong' not in region.stdout"
+      shell: ./download-releases.sh cf-deployment.yml roles/cf/files/releases
+    #  shell: ./download-releases.sh cf-deployment.yml roles/cf-deploy/files/releases
+    #  when: "'cn-' in region.stdout and 'cn-hongkong' not in region.stdout"
 
-    - shell: Terraform init && terraform destroy -force -var 'alicloud_access_key={{ alicloud_access_key }}' -var 'alicloud_secret_key={{ alicloud_secret_key }}' -var 'alicloud_region={{ alicloud_region }}' -var 'domain_name={{ system_domain }}'
-      args:
-        chdir: ./server
-      when: delete
+    #- shell: Terraform init && terraform destroy -force -var 'alicloud_access_key={{ alicloud_access_key }}' -var 'alicloud_secret_key={{ alicloud_secret_key }}' -var 'alicloud_region={{ alicloud_region }}' -var 'domain_name={{ system_domain }}'
+    #  args:
+    #    chdir: ./server
+    #  when: delete
 
-    - shell: Terraform init && terraform apply --auto-approve -var 'alicloud_access_key={{ alicloud_access_key }}' -var 'alicloud_secret_key={{ alicloud_secret_key }}' -var 'alicloud_region={{ alicloud_region }}' -var 'domain_name={{ system_domain }}'
-      args:
-        chdir: ./server
-      when: not delete
+    #- shell: Terraform init && terraform apply --auto-approve -var 'alicloud_access_key={{ alicloud_access_key }}' -var 'alicloud_secret_key={{ alicloud_secret_key }}' -var 'alicloud_region={{ alicloud_region }}' -var 'domain_name={{ system_domain }}'
+    #  args:
+    #    chdir: ./server
+    #  when: not delete
 
 
 - name: Start Deploying
