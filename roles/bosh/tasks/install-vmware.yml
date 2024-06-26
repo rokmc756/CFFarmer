@@ -41,27 +41,60 @@
 #    - source ~/.bashrc
 
 
-# bosh create-env bosh-deployment/bosh.yml --state=state.json --vars-store=creds.yml -o bosh-deployment/alicloud/cpi.yml -o bosh-deployment/alicloud/releases-in-china.yml -o bosh-deployment/jumpbox-user.yml -o bosh-deployment/misc/powerdns.yml -v dns_recursor_ip={{dns_recursor_ip}} -v download_dir={{download_dir}} -v director_name={{director_name}} -v internal_cidr={{internal_cidr}} -v internal_gw={{internal_gw}} -v internal_ip={{internal_ip}} -v vswitch_id={{vswitch_id}} -v security_group_id={{security_group_id_1}} -v access_key_id={{alicloud_access_key}} -v access_key_secret={{alicloud_secret_key}} -v region={{alicloud_region}}  -v zone={{bosh_zone}} -v key_pair_name={{key_pair_name}} -v private_key={{private_key}}
+#[ VMware vSphere ]
+#- https://bosh.io/docs/init-vsphere/
+
+
+#* Create directory to keep state
+#mkdir bosh-1 && cd bosh-1
+
+#* Clone Director templates
+#git clone https://github.com/cloudfoundry/bosh-deployment
+
+
+- name: Check if Bosh Environment Directory Exists
+  stat: path={{ base_path }}/{{ bosh.director_name }}
+  register: bosh_env_dir
+- debug: msg={{ bosh_env_dir }}
+  when: print_debug == true
+
+
+- name: Check if Bosh Environment Directory Exists
+  file:
+    path: "{{ base_path }}/{{ bosh.director_name }}"
+    state: present
+  register: create_bosh_env_dir
+  when: bosh_env_dir.stat.exists == false
+- debug: msg={{ create_bosh_env_dir }}
+  when: print_debug == true and bosh_env_dir.stat.exists == false
+
+
+- name: Check if Bosh Deployment Directory Exists
+  stat: path={{ base_path }}/{{ bosh.director_name }}/bosh-deployment
+  register: bosh_deploy_dir
+- debug: msg={{ bosh_deploy_dir }}
+  when: print_debug == true
+
+
+- name: Git Clone Bosh Deployment
+  git:
+    repo: "https://github.com/cloudfoundry/bosh-deployment"
+    dest: "{{ base_path }}/{{ bosh.director_name }}/bosh-deployment"
+  register: git_clone_bosh_deploy
+  when: bosh_deploy_dir.stat.exists == false
+- debug: msg={{ git_clone_bosh_deploy }}
+  when: print_debug == true and bosh_deploy_dir.stat.exists == false
+
+
 - name: Deploy Bosh
   shell: |
-    bosh create-env bosh-deployment/bosh.yml \
-    --state=state.json \
-    --vars-store=creds.yml \
-    -o bosh-deployment/vsphere/cpi.yml \
-    -v director_name={{ bosh.director_name }} \
-    -v internal_cidr={{ bosh.internal_cidr }} \
-    -v internal_gw={{ bosh.internal_gw }} \
-    -v internal_ip={{ bosh.internal_ip }} \
-    -v network_name="{{ bosh.vm_network }}" \
-    -v vcenter_dc={{ vcenter.datacenter }} \
-    -v vcenter_ds={{ vcenter.datastore }} \
-    -v vcenter_ip={{ vcenter.ip_addr }} \
-    -v vcenter_user={{ vcenter.username }} \
-    -v vcenter_password="{{ vcenter.password }}" \
-    -v vcenter_templates={{ bosh.director_name }}-templates \
-    -v vcenter_vms={{ bosh.director_name }}-vms \
-    -v vcenter_disks={{ bosh.director_name }}-disks \
-    -v vcenter_cluster={{ vcenter.cluster }}
+    bosh create-env bosh-deployment/bosh.yml --state=state.json --vars-store=creds.yml \
+    -o bosh-deployment/vsphere/cpi.yml -o bosh-deployment/uaa.yml -o bosh-deployment/credhub.yml \
+    -v director_name="{{ bosh.director_name }}" -v internal_cidr="{{ bosh.internal_cidr }}" -v internal_gw="{{ bosh.internal_gw }}" \
+    -v internal_ip="{{ bosh.internal_ip }}" -v network_name="{{ bosh.vm_network }}" -v vcenter_dc="{{ vcenter.datacenter }}" \
+    -v vcenter_ds="{{ vcenter.datastore }}" -v vcenter_ip="{{ vcenter.ip_addr }}" -v vcenter_user="{{ vcenter.username }}" \
+    -v vcenter_password="{{ vcenter.password }}" -v vcenter_templates="{{ bosh.director_name }}-templates" -v vcenter_vms="{{ bosh.director_name }}-vms" \
+    -v vcenter_disks="{{ bosh.director_name }}-disks" -v vcenter_cluster="{{ vcenter.cluster }}"
   register: deploy_bosh
   args:
     chdir: "{{ base_path }}/{{ bosh.director_name }}"
@@ -71,7 +104,7 @@
 
 
 #- name: Deploy Bosh in Oversea
-#  shell: bosh create-env bosh-deployment/bosh.yml --state=state.json --vars-store=creds.yml -o bosh-deployment/alicloud/cpi.yml -o bosh-deployment/jumpbox-user.yml -o bosh-deployment/misc/powerdns.yml -v dns_recursor_ip={{dns_recursor_ip}} -v download_dir={{download_dir}} -v director_name={{director_name}} -v internal_cidr={{internal_cidr}} -v internal_gw={{internal_gw}} -v internal_ip={{internal_ip}} -v vswitch_id={{vswitch_id}} -v security_group_id={{security_group_id_1}} -v access_key_id={{alicloud_access_key}} -v access_key_secret={{alicloud_secret_key}} -v region={{alicloud_region}}  -v zone={{bosh_zone}} -v key_pair_name={{key_pair_name}} -v private_key={{private_key}}
+#  shell: bosh create-env bosh-deployment/bosh.yml --state=state.json --vars-store=creds.yml -o bosh-deployment/alicloud/cpi.yml -o bosh-deployment/jumpbox-user.yml -o bosh-deployment/misc/powerdns.yml -v dns_recursor_ip={{ dns_recursor_ip }} -v download_dir={{ download_dir }} -v director_name={{ director_name }} -v internal_cidr={{ internal_cidr }} -v internal_gw={{ internal_gw }} -v internal_ip={{ internal_ip }} -v vswitch_id={{ vswitch_id }} -v security_group_id={{ security_group_id_1 }} -v access_key_id={{ alicloud_access_key }} -v access_key_secret={{ alicloud_secret_key }} -v region={{ alicloud_region }}  -v zone={{ bosh_zone }} -v key_pair_name={{ key_pair_name }} -v private_key={{ private_key }}
 #  args:
 #    chdir: '{{ bosh_deploy_dir }}'
 #    executable: /bin/bash

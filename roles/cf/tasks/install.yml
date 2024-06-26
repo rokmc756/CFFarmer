@@ -21,15 +21,15 @@
 #  # when: "'cn-hongkong' in region.stdout or 'cn-' not in region.stdout"
 
 
-- name: Write Completion of CF
-  get_url:
-    url: 'https://raw.githubusercontent.com/cloudfoundry/cli/master/ci/installers/completion/cf'
-    dest: /usr/share/bash-completion/completions/
-  become-method: sudo
+#- name: Write Completion of CF
+#  get_url:
+#    url: 'https://raw.githubusercontent.com/cloudfoundry/cli/master/ci/installers/completion/cf'
+#    dest: /usr/share/bash-completion/completions/
+#  become-method: sudo
 
 
-- name: Make directory
-  file: path="{{ cf_deploy_dir }}" state=directory
+#- name: Make directory
+#  file: path="{{ cf_deploy_dir }}" state=directory
 
 
 #- name: Copy Releases for China
@@ -39,65 +39,117 @@
 #  when: "'cn-' in region.stdout and 'cn-hongkong' not in region.stdout"
 
 
+- name: Check if CF Deployment Directory Exists
+  stat: path={{ base_path }}/cf-deployment
+  register: cf_deploy_dir
+- debug: msg={{ cf_deploy_dir }}
+  when: print_debug == true
+
+
 - name: Git Clone CF Deployment
   git:
-    repo: 'https://github.com/aliyun/cf-deployment.git'
-    dest: '{{ cf_deploy_dir }}/cf-deployment'
+    repo: "https://github.com/cloudfoundry/cf-deployment"
+    dest: "{{ base_path }}/cf-deployment"
+  register: git_clone_cf_deploy
+  when: cf_deploy_dir.stat.exists == false
+- debug: msg={{ git_clone_cf_deploy }}
+  when: print_debug == true and cf_deploy_dir.stat.exists == false
 
 
-- name: Update Config
-  shell: '{{ item }}'
-  args:
-    chdir: '{{ cf_deploy_dir }}'
+- name: Copy Cloud Config Vars File
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ base_path }}/cf-deployment/iaas-support/vsphere/{{ item }}"
+  register: copy_cloud_config_vars_file
   with_items:
-    - echo bosh -e {{ director_name }} update-cloud-config ./cf-deployment/iaas-support/alicloud/cloud-config.yml -v az1_zone={{ az1_zone }} -v az2_zone={{ az2_zone }} -v az3_zone={{ az3_zone }} -v az1_vswitch_id={{ az1_vswitch_id }} -v az2_vswitch_id={{ az2_vswitch_id }} -v az3_vswitch_id={{ az3_vswitch_id }} -v az1_vswitch_range={{ az1_vswitch_range }}  -v az2_vswitch_range={{ az2_vswitch_range }} -v az3_vswitch_range={{ az3_vswitch_range }} -v az1_vswitch_gateway={{ az1_vswitch_gateway }} -v az2_vswitch_gateway={{ az2_vswitch_gateway }} -v az3_vswitch_gateway={{ az3_vswitch_gateway }} -v security_group_id_1={{ security_group_id_1 }} -v security_group_id_2={{ security_group_id_2 }} -v security_group_id_3={{ security_group_id_3 }} -v tcp_slb_id_array=[{{ tcp_slb_id_array }}] -v http_slb_id_array=[{{ http_slb_id_array }}] \<\< EOF > update_config.sh
-    - echo y >> update_config.sh
-    - echo EOF >> update_config.sh
-    - chmod +x update_config.sh
-    - ./update_config.sh
-    - echo export CF_DOMAIN={{ system_domain }} >> /etc/profile
-    - . /etc/profile
+    - "cloud-config-vars.yml"
+- debug: msg={{ copy_cloud_config_vars_file }}
 
 
-- name: Uploade Releases and Stemcells, Write CF manifest in China
-  shell: '{{ item }}'
+# export BOSH_CA_CERT=<DIRECTOR_CA_CERT_TEXT>
+- name: Get BOSH Client Secret
+  shell: |
+    bosh int creds.yml --path /admin_password
+  register: get_bosh_client_secret
   args:
-    chdir: '{{ cf_deploy_dir }}'
-  when: "'cn-' in region.stdout and 'cn-hongkong' not in region.stdout"
-  with_items:
-    - bosh -e {{ director_name }} upload-stemcell http://bosh.oss-cn-hangzhou.aliyuncs.com/light-bosh-stemcell-{{ stemcell_version }}-alicloud-kvm-ubuntu-trusty-go_agent.tgz
-    - cf-deployment/iaas-support/alicloud/upload-releases.sh ./releases {{ director_name }}
-    - echo bosh -e {{ director_name }} -d cf deploy releases/cf-deployment-local.yml --vars-store cf-vars.yml -o cf-deployment/iaas-support/alicloud/stemcells.yml -v region={{ alicloud_region }} -v system_domain={{ system_domain }} \<\< EOF > deploy_cf.sh
+    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+    executable: /bin/bash
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+    BOSH_ENVIRONMENT: "192.168.0.181"
+    BOSH_CLIENT: "admin"
+- debug: msg={{ get_bosh_client_secret }}
+  when: print_debug == true
 
 
-- name: Uploade Releases and Stemcells, Write CF Manifest in Oversea
-  shell: '{{ item }}'
+#  export BOSH_CLIENT_SECRET=`bosh int ./bosh-1/creds.yml --path /admin_password`
+- name: Update Runtime Config
+  shell: |
+    bosh -n -e bosh-1 update-runtime-config bosh-deployment/runtime-configs/dns.yml --name dns
+  delegate_to: localhost
+  register: update_runtime_config
   args:
-    chdir: '{{ cf_deploy_dir }}'
-  when: "'cn-hongkong' in region.stdout or 'cn-' not in region.stdout"
-  with_items:
-    - bosh -e {{ director_name }} upload-stemcell http://bosh-{{ alicloud_region }}.oss-{{ alicloud_region }}.aliyuncs.com/light-bosh-stemcell-{{ stemcell_version }}-alicloud-kvm-ubuntu-trusty-go_agent.tgz
-    - bosh -e {{ director_name }} upload-release https://bosh.io/d/github.com/cloudfoundry/cf-release?v={{ cf_release_version }}
-    - echo bosh -e {{ director_name }} -d cf deploy cf-deployment/cf-deployment.yml --vars-store cf-vars.yml -o cf-deployment/iaas-support/alicloud/stemcells.yml -v region={{ alicloud_region }} -v system_domain={{ system_domain }} \<\< EOF > deploy_cf.sh
+    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+    executable: /bin/bash
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+    BOSH_ENVIRONMENT: "192.168.0.181"
+    BOSH_CLIENT: "admin"
+    BOSH_CLIENT_SECRET: "{{ get_bosh_client_secret.stdout }}"
+- debug: msg={{ update_runtime_config }}
+  when: print_debug == true
 
 
-- name: Write CF Manifest
-  shell: '{{ item }}'
+- name: Get Stemcell Version
+  shell: |
+    bosh interpolate ./cf-deployment/cf-deployment.yml --path=/stemcells/alias=default/version
+  register: get_stemcell_version
   args:
-    chdir: '{{ cf_deploy_dir }}'
-  with_items:
-    - echo yes >> deploy_cf.sh
-    - echo EOF >> deploy_cf.sh
+    chdir: "{{ base_path }}/"
+    executable: /bin/bash
 
 
-- name: Chmod 755
-  file:
-    path: '{{ cf_deploy_dir }}/deploy_cf.sh'
-    mode: 0755
-
-
-- name: Deploy CF
-  shell: './deploy_cf.sh'
+- name: Upload Stemcell
+  shell: |
+    bosh -n upload-stemcell https://bosh.io/d/stemcells/bosh-${IAAS_INFO}-${OS_INFO}-go_agent?v=${STEMCELL_VERSION}
+  register: upload_stemcell
   args:
-    chdir: '{{cf_deploy_dir}}'
+    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+    executable: /bin/bash
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+    IAAS_INFO: vsphere-esxi
+    OS_INFO: ubuntu-jammy
+    STEMCELL_VERSION: "{{ get_stemcell_version.stdout }}"
+- debug: msg={{ upload_stemcell }}
+  when: print_debug == true
+
+
+- name: Update Cloud Config
+  shell: |
+    bosh -n -e bosh-1 update-cloud-config ./cf-deployment/iaas-support/vsphere/cloud-config.yml \
+    --vars-store ./cf-deployment/iaas-support/vsphere/cloud-config-vars.yml
+  register: update_cloud_config
+  args:
+    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+    executable: /bin/bash
+- debug: msg={{ update_cloud_config }}
+  when: print_debug == true
+
+
+- name: Deploy Cloud Foundry
+  shell: |
+    bosh -n -e bosh-1 -d cf deploy ./cf-deployment/cf-deployment.yml --vars-store ./cf-deployment/iaas-support/vsphere/cloud-config-vars.yml \
+    -v system_domain="$SYSTEM_DOMAIN" -v cf_admin_password=admin -v uaa_admin_client_secret="$BOSH_CLIENT_SECRET"
+  register: deploy_cf
+  args:
+    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+    executable: /bin/bash
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+    SYSTEM_DOMAIN: jtest.weka.io
+    CF_DOMAIN: jtest.weka.io
+    BOSH_CLIENT_SECRET: "{{ get_bosh_client_secret.stdout }}"
+- debug: msg={{ deploy_cf }}
+  when: print_debug == true
 

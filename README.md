@@ -39,3 +39,7 @@ Execute the following command with Alicloud Access Key, Region ID and Domain Nam
     1. You must specify a system domain by 'system_domain' to access to application. System domain is a public subdomian, like `aliyun.com`
     2. If you want to delete Alicloud resources, you can set parameter `delete` to `true` in above command.
 
+References
+==========
+- https://www.redhat.com/ko/topics/application-modernization/what-is-cloud-foundry
+

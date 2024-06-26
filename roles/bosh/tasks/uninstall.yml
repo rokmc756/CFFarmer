@@ -1,25 +1,48 @@
 - name: Destroy Bosh Director VMs
   shell: |
-    bosh delete-env bosh-deployment/bosh.yml \
-    --state=state.json \
-    --vars-store=creds.yml \
-    -o bosh-deployment/vsphere/cpi.yml \
-    -v director_name={{ bosh.director_name }} \
-    -v internal_cidr={{ bosh.internal_cidr }} \
-    -v internal_gw={{ bosh.internal_gw }} \
-    -v internal_ip={{ bosh.internal_ip }} \
-    -v network_name="{{ bosh.vm_network }}" \
-    -v vcenter_dc={{ vcenter.datacenter }} \
-    -v vcenter_ds={{ vcenter.datastore }} \
-    -v vcenter_ip={{ vcenter.ip_addr }} \
-    -v vcenter_user={{ vcenter.username }} \
-    -v vcenter_password="{{ vcenter.password }}" \
-    -v vcenter_templates={{ bosh.director_name }}-templates \
-    -v vcenter_vms={{ bosh.director_name }}-vms \
-    -v vcenter_disks={{ bosh.director_name }}-disks \
-    -v vcenter_cluster={{ vcenter.cluster }}
+    bosh delete-env bosh-deployment/bosh.yml --state=state.json --vars-store=creds.yml \
+    -o bosh-deployment/vsphere/cpi.yml -o bosh-deployment/uaa.yml -o bosh-deployment/credhub.yml \
+    -v director_name="{{ bosh.director_name }}" -v internal_cidr="{{ bosh.internal_cidr }}" -v internal_gw="{{ bosh.internal_gw }}" \
+    -v internal_ip="{{ bosh.internal_ip }}" -v network_name="{{ bosh.vm_network }}" -v vcenter_dc="{{ vcenter.datacenter }}" \
+    -v vcenter_ds="{{ vcenter.datastore }}" -v vcenter_ip="{{ vcenter.ip_addr }}" -v vcenter_user="{{ vcenter.username }}" \
+    -v vcenter_password="{{ vcenter.password }}" -v vcenter_templates="{{ bosh.director_name }}-templates" -v vcenter_vms="{{ bosh.director_name }}-vms" \
+    -v vcenter_disks="{{ bosh.director_name }}-disks" -v vcenter_cluster="{{ vcenter.cluster }}"
   register: delete_cf_cli
   args:
     chdir: "{{ base_path }}/{{ bosh.director_name }}"
 - debug: msg={{ delete_cf_cli }}
+
+
+- name: Check if Bosh Environment Directory Exists
+  stat: path={{ base_path }}/{{ bosh.director_name }}
+  register: bosh_env_dir
+- debug: msg={{ bosh_env_dir }}
+  when: print_debug == true
+
+
+- name: Check if Bosh Deployment Directory Exists
+  stat: path={{ base_path }}/{{ bosh.director_name }}/bosh-deployment
+  register: bosh_deploy_dir
+- debug: msg={{ bosh_deploy_dir }}
+  when: print_debug == true
+
+
+- name: Delete Clone Bosh Deployment Directory
+  file:
+    path: "{{ base_path }}/{{ bosh.director_name }}/bosh-deployment"
+    state: absent
+  register: delete_bosh_deploy
+  when: bosh_deploy_dir.stat.exists == true
+- debug: msg={{ delete_bosh_deploy }}
+  when: print_debug == true and bosh_deploy_dir.stat.exists == true
+
+
+- name: Delete Clone Bosh Environment Directory
+  file:
+    path: "{{ base_path }}/{{ bosh.director_name }}"
+    state: absent
+  register: delete_bosh_env
+  when: bosh_env_dir.stat.exists == true
+- debug: msg={{ delete_bosh_env }}
+  when: print_debug == true and bosh_env_dir.stat.exists == true
 

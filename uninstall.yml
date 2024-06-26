@@ -4,9 +4,9 @@
   vars:
     print_debug: true
   roles:
-    - bosh
+    - cf
 
+#    - bosh
 #    - cli
-#    - cf
 #    - app
 

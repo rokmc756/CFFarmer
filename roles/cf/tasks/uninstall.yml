@@ -1,13 +1,100 @@
-- name: Delete CF and Bosh CLI Binary
+# export BOSH_CA_CERT=<DIRECTOR_CA_CERT_TEXT>
+- name: Get BOSH Client Secret
+  shell: |
+    bosh int creds.yml --path /admin_password
+  register: get_bosh_client_secret
+  args:
+    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+    executable: /bin/bash
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+    BOSH_ENVIRONMENT: "192.168.0.181"
+    BOSH_CLIENT: "admin"
+
+
+#- name: Update Runtime Config
+#  shell: |
+#    bosh -n -e bosh-1 update-runtime-config bosh-deployment/runtime-configs/dns.yml --name dns
+#  register: update_runtime_config
+#  args:
+#    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+#    executable: /bin/bash
+#  environment:
+#    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+#    BOSH_ENVIRONMENT: "192.168.0.181"
+#    BOSH_CLIENT: "admin"
+#    BOSH_CLIENT_SECRET: "{{ get_bosh_client_secret.stdout }}"
+#- debug: msg={{ update_runtime_config }}
+#  when: print_debug == true
+
+
+- name: Get Stemcell Version
+  shell: |
+    bosh interpolate ./cf-deployment/cf-deployment.yml --path=/stemcells/alias=default/version
+  register: get_stemcell_version
+  args:
+    chdir: "{{ base_path }}/"
+    executable: /bin/bash
+
+
+#- name: Upload Stemcell
+#  shell: |
+#    bosh -n upload-stemcell https://bosh.io/d/stemcells/bosh-${IAAS_INFO}-${OS_INFO}-go_agent?v=${STEMCELL_VERSION}
+#  register: upload_stemcell
+#  args:
+#    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+#    executable: /bin/bash
+#  environment:
+#    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+#    IAAS_INFO: vsphere-esxi
+#    OS_INFO: ubuntu-jammy
+#    STEMCELL_VERSION: "{{ get_stemcell_version.stdout }}"
+#- debug: msg={{ upload_stemcell }}
+#  when: print_debug == true
+
+
+#- name: Update Cloud Config
+#  shell: |
+#    bosh -n -e bosh-1 update-cloud-config cf-deployment/iaas-support/vsphere/cloud-config.yml \
+#    --vars-store ./cf-deployment/iaas-support/vsphere/cloud-config-vars.yml
+#  register: update_cloud_config
+#  args:
+#    chdir: "{{ base_path }}/"
+#    executable: /bin/bash
+#- debug: msg={{ update_cloud_config }}
+#  when: print_debug == true
+
+
+- name: Destroy Cloud Foundry
+  shell: |
+    bosh -n -e bosh-1 -d cf delete-deployment --force
+    bosh -n -e bosh-1 clean-up --all
+  register: destroy_cf
+  args:
+    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+    executable: /bin/bash
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+    SYSTEM_DOMAIN: jtest.weka.io
+    CF_DOMAIN: jtest.weka.io
+    BOSH_CLIENT_SECRET: "{{ get_bosh_client_secret.stdout }}"
+- debug: msg={{ destroy_cf }}
+  when: print_debug == true
+
+
+- name: Check if CF Deployment Directory Exists
+  stat: path={{ base_path }}/cf-deployment
+  register: cf_deploy_dir
+- debug: msg={{ cf_deploy_dir }}
+  when: print_debug == true
+
+
+- name: Delete Clone CF Deployment
   file:
-    path: "{{ item }}"
+    path: "{{ base_path }}/cf-deployment"
     state: absent
-  register: delete_cf_cli
-  delegate_to: localhost
-  with_items:
-    - "/usr/local/bin/bosh"
-    - "/usr/local/bin/cf"
-    - "/usr/local/bin/cf8"
-    - "/usr/local/bin/LICENSE"
-    - "/usr/local/bin/NOTICE"
-- debug: msg={{ delete_cf_cli }}
+  register: delete_clone_cf_deploy
+  when: cf_deploy_dir.stat.exists == true
+- debug: msg={{ delete_clone_cf_deploy }}
+  when: print_debug == true and cf_deploy_dir.stat.exists == true
+
