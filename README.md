@@ -42,4 +42,5 @@ Execute the following command with Alicloud Access Key, Region ID and Domain Nam
 References
 ==========
 - https://www.redhat.com/ko/topics/application-modernization/what-is-cloud-foundry
+- https://github.com/alibaba-archive/ansible-role-cloudfoundry
 

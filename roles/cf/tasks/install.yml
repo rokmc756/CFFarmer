@@ -1,4 +1,7 @@
 ---
+# Download Stemcell
+# - https://bosh.cloudfoundry.org/stemcells/
+#
 #- name: Register Region
 #  command: echo {{ alicloud_region }}
 #  register: region
@@ -107,34 +110,69 @@
   args:
     chdir: "{{ base_path }}/"
     executable: /bin/bash
+- debug: msg={{ get_stemcell_version }}
+  when: print_debug == true
 
 
-- name: Upload Stemcell
+#########################################################################################################################
+- name: Configure Local Alias
   shell: |
-    bosh -n upload-stemcell https://bosh.io/d/stemcells/bosh-${IAAS_INFO}-${OS_INFO}-go_agent?v=${STEMCELL_VERSION}
-  register: upload_stemcell
+    bosh alias-env bosh-1 -e 192.168.0.181 --ca-cert <(bosh int ./creds.yml --path /director_ssl/ca)
+  register: config_local_alias
+  args:
+    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+    executable: /bin/bash
+- debug: msg={{ config_local_alias }}
+#########################################################################################################################
+
+
+
+#########################################################################################################################
+- name: Login to the Bosh Director
+  shell: |
+    export BOSH_CLIENT_SECRET=`bosh int ./creds.yml --path /admin_password`
+    bosh -e bosh-1 env
+  register: login_bosh_director
   args:
     chdir: "{{ base_path }}/{{ bosh.director_name }}"
     executable: /bin/bash
   environment:
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
-    IAAS_INFO: vsphere-esxi
-    OS_INFO: ubuntu-jammy
-    STEMCELL_VERSION: "{{ get_stemcell_version.stdout }}"
-- debug: msg={{ upload_stemcell }}
-  when: print_debug == true
+    BOSH_CLIENT: "admin"
+- debug: msg={{ login_bosh_director }}
+#########################################################################################################################
 
 
-- name: Update Cloud Config
-  shell: |
-    bosh -n -e bosh-1 update-cloud-config ./cf-deployment/iaas-support/vsphere/cloud-config.yml \
-    --vars-store ./cf-deployment/iaas-support/vsphere/cloud-config-vars.yml
-  register: update_cloud_config
-  args:
-    chdir: "{{ base_path }}/{{ bosh.director_name }}"
-    executable: /bin/bash
-- debug: msg={{ update_cloud_config }}
-  when: print_debug == true
+# bosh -n upload-stemcell https://bosh.io/d/stemcells/bosh-vsphere-esxi-ubuntu-jammy-go_agent?v=${STEMCELL_VERSION}
+# bosh -e bosh-1 upload-stemcell https://bosh.io/d/stemcells/bosh-${IAAS_INFO}-${OS_INFO}-go_agent?v=${STEMCELL_VERSION}
+# bosh -e bosh-1 upload-stemcell http://192.168.0.90:81/cf/bosh-stemcell-1.465-vsphere-esxi-ubuntu-jammy-go_agent.tgz
+# bosh -e bosh-1 upload-stemcell http://192.168.0.90:81/cf/bosh-stemcell-1.465-vsphere-esxi-ubuntu-jammy-go_agent.tgz
+#- name: Upload Stemcell
+#  shell: |
+#    bosh -e bosh-1 upload-stemcell https://bosh.io/d/stemcells/bosh-${IAAS_INFO}-${OS_INFO}-go_agent?v=${STEMCELL_VERSION}
+#  register: upload_stemcell
+#  args:
+#    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+#    executable: /bin/bash
+#  environment:
+#    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+#    IAAS_INFO: vsphere-esxi
+#    OS_INFO: ubuntu-jammy
+#    STEMCELL_VERSION: "{{ get_stemcell_version.stdout }}"
+#- debug: msg={{ upload_stemcell }}
+#  when: print_debug == true
+
+
+#- name: Update Cloud Config
+#  shell: |
+#    bosh -n -e bosh-1 update-cloud-config ./cf-deployment/iaas-support/vsphere/cloud-config.yml \
+#    --vars-store ./cf-deployment/iaas-support/vsphere/cloud-config-vars.yml
+#  register: update_cloud_config
+#  args:
+#    chdir: "{{ base_path }}/"
+#    executable: /bin/bash
+#- debug: msg={{ update_cloud_config }}
+#  when: print_debug == true
 
 
 - name: Deploy Cloud Foundry
@@ -143,7 +181,7 @@
     -v system_domain="$SYSTEM_DOMAIN" -v cf_admin_password=admin -v uaa_admin_client_secret="$BOSH_CLIENT_SECRET"
   register: deploy_cf
   args:
-    chdir: "{{ base_path }}/{{ bosh.director_name }}"
+    chdir: "{{ base_path }}/"
     executable: /bin/bash
   environment:
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"

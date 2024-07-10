@@ -5,7 +5,6 @@
     print_debug: true
   roles:
     - cf
-
 #    - bosh
 #    - cli
 #    - app
